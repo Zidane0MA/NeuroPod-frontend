@@ -23,7 +23,7 @@ export const Hero = () => {
                 <Link to="/signup">Get Started</Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <Link to="/docs">Learn More</Link>
+                <a href="https://github.com/Zidane0MA/NeuroPod" target="_blank" rel="noopener noreferrer">Learn More</a>
               </Button>
             </div>
           </div>

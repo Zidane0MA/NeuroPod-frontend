@@ -24,9 +24,9 @@ export const Navbar = () => {
           <Link to="/pricing" className="text-sm font-medium hover:text-primary">
             Pricing
           </Link>
-          <Link to="/docs" className="text-sm font-medium hover:text-primary">
+          <a href="https://github.com/Zidane0MA/NeuroPod" target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:text-primary">
             Documentation
-          </Link>
+          </a>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>

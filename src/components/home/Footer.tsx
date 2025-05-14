@@ -31,9 +31,9 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/docs" className="text-muted-foreground hover:text-foreground">
+                <a href="https://github.com/Zidane0MA/NeuroPod" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                   Documentación
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
