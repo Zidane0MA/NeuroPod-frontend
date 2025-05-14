@@ -1,73 +1,139 @@
-# Welcome to your Lovable project
+# NeuroPod - Plataforma de Gestión de Contenedores
 
-## Project info
+## Descripción del Proyecto
 
-**URL**: https://lovable.dev/projects/58961d19-0f39-4697-9234-1c78c7613be9
+NeuroPod es una plataforma avanzada que permite a los usuarios iniciar sesión, gestionar y ejecutar múltiples contenedores Docker a través de una interfaz web intuitiva. Cada contenedor desplegado es accesible mediante su propio subdominio dinámico (ej. `comfy-usuario123-4567.neuropod.online`).
 
-## How can I edit this code?
+El sistema gestiona la autenticación, sesiones, y despliega los contenedores necesarios en Kubernetes de forma dinámica según las peticiones de los usuarios. Los contenedores tienen un directorio `/workspace` que persiste entre sesiones para almacenar datos del usuario.
 
-There are several ways of editing your application.
+## Tecnologías Principales
 
-**Use Lovable**
+- **Frontend**: React, Vite, TypeScript, TailwindCSS, shadcn-ui
+- **Backend**: Node.js, Express
+- **Base de Datos**: MongoDB
+- **Orquestación**: Kubernetes, Docker, NGINX Ingress Controller
+- **Conectividad Externa**: Cloudflare Tunnel
+- **Autenticación**: Google OAuth2, JWT
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/58961d19-0f39-4697-9234-1c78c7613be9) and start prompting.
+## Modelo de Negocio
 
-Changes made via Lovable will be committed automatically to this repo.
+- Usuarios reciben un saldo inicial de 10€
+- El saldo se consume al ejecutar contenedores según el tipo y tiempo de uso
+- El administrador cuenta con saldo ilimitado y puede configurar precios y asignar saldo adicional a los usuarios
+- Sistema preparado para integrar pasarelas de pago (pendiente de implementación)
 
-**Use your preferred IDE**
+## Estructura del Frontend
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Páginas Principales
+- **/** - Página de inicio
+- **/login** y **/signup** - Autenticación
+- **/pricing** - Planes y precios
+- **/dashboard** - Panel principal
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Panel de Administrador
+- **/admin/pods** - Gestión de todos los contenedores
+- **/admin/pods/deploy** - Crear nuevos contenedores
+- **/admin/users** - Gestión de usuarios
+- **/admin/settings** - Configuración del sistema
+- **/admin/help** - Documentación para administradores
 
-Follow these steps:
+### Panel de Cliente
+- **/client/stats** - Estadísticas de uso
+- **/client/pods** - Gestión de contenedores propios
+- **/client/pods/deploy** - Crear nuevos contenedores
+- **/client/settings** - Configuración de cuenta
+- **/client/help** - Documentación para usuarios
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Arquitectura del Sistema
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+                           🌐 Internet
+                               |
+              +----------------+-----------------+
+              |                                  |
+       DNS Wildcard (*.neuropod.online)          |
+              |                                  |
+     +--------+--------+                         |
+     |                 |                         |
+     v                 v                         v
+app.neuropod.online  api.neuropod.online  *.neuropod.online
+(Frontend)           (Backend API)       (Pods de Usuario)
+     |                 |                         |
+     v                 v                         v
++--------------------------+ Cloudflare Tunnel +---------------------------------+
+|    localhost:5173        |      localhost:3000       |     localhost:443       |
++------------+-------------+-------------+-------------+-------------+-----------+
+             |                           |                           |
+             v                           v                           v
+     +---------------+          +------------------+         +-------------------+
+     | Frontend React|          | Backend Node.js  |         | NGINX Ingress     |
+     | (No container)|          | (No container)   |         | Controller        |
+     +-------+-------+          +--------+---------+         +---------+---------+
+             |                           |                             |
+             |                           v                             v
+             |                  +------------------+         +-------------------+
+             |                  | MongoDB          |         | Kubernetes API    |
+             |                  | (No container)   |<------->| (Minikube)        |
+             |                  +------------------+         +---------+---------+
+             |                           ^                             |
+             |                           |                             v
+             |                           |                   +-------------------+
+             |                  WebSocket Events             | Pods de Usuario   |
+             +--------------------------------+              | - ComfyUI         |
+                                             |               | - Ubuntu          |
+                                             |               | - Imágenes custom |
+                                             |               +-------------------+
+                                             |                        |
+                                             |                        v
+                                             |               +-------------------+
+                                             +-------------->| Persistent Volume |
+                                                             | (/workspace)      |
+                                                             +-------------------+
 ```
 
-**Edit a file directly in GitHub**
+## Desarrollo Local
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Requisitos Previos
+- Node.js v22 o superior
+- MongoDB Community Edition
+- Minikube con NGINX Ingress habilitado
+- Cloudflared (para Cloudflare Tunnel)
+- Cuenta en Cloudflare con un dominio configurado
 
-**Use GitHub Codespaces**
+### Configuración Inicial
+1. Clonar este repositorio
+2. Instalar dependencias: `npm install`
+3. Iniciar el servidor de desarrollo: `npm run dev`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Conexión con Backend
+- El frontend se conecta con el backend a través de endpoints REST en `api.neuropod.online`
+- Asegúrate que el backend esté en ejecución en `localhost:3000`
 
-## What technologies are used for this project?
+### Variables de Entorno
+Crea un archivo `.env` con las siguientes variables:
+```
+VITE_API_URL=http://localhost:3000
+VITE_GOOGLE_CLIENT_ID=tu-google-client-id
+```
 
-This project is built with:
+## Funcionalidades a Implementar
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- [x] Estructura básica de rutas y navegación
+- [x] Diseño UI con TailwindCSS y shadcn-ui
+- [ ] Integración con Google OAuth2
+- [ ] Paneles de administrador y cliente
+- [ ] WebSockets para notificaciones en tiempo real
+- [ ] Gestión dinámica de contenedores
+- [ ] Sistema de balance y pagos
 
-## How can I deploy this project?
+## Contribución
+Si deseas contribuir al proyecto:
+1. Crea un fork del repositorio
+2. Crea una nueva rama con tu característica o corrección
+3. Envía un pull request
 
-Simply open [Lovable](https://lovable.dev/projects/58961d19-0f39-4697-9234-1c78c7613be9) and click on Share -> Publish.
+## Licencia
+Este proyecto es privado y su código fuente es propiedad de sus desarrolladores.
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Contacto
+Para más información, contacta a lolerodiez@gmail.com
