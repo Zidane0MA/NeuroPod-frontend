@@ -215,19 +215,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setIsLoading(true);
+      
       // Intentar logout en el servidor solo si no estamos en modo sin conexión
       if (!isOfflineMode) {
-        await authService.logout();
+        try {
+          await authService.logout();
+          console.log('Logout exitoso en el servidor');
+        } catch (error) {
+          console.warn('Error al cerrar sesión en el servidor, continuando con logout local:', error);
+          // Continuamos con el logout local aunque falle en el servidor
+        }
       }
-    } catch (error) {
-      // Ignorar errores en logout
-    } finally {
-      // Siempre limpiar datos locales
+      
+      // Limpiar datos locales y mostrar mensaje
       setUser(null);
       setIsOfflineMode(false);
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+      
+      // Redireccionar a login
       navigate("/login");
+    } catch (error) {
+      console.error('Error durante logout:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
     }
   };

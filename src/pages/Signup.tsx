@@ -62,7 +62,9 @@ const Signup = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
-            <Container className="h-10 w-10 text-purple-500" />
+            <Link to="/">
+              <Container className="h-10 w-10 text-purple-500 hover:text-purple-700 transition-colors" />
+            </Link>
           </div>
           <CardTitle className="text-2xl text-center">Crear Cuenta</CardTitle>
           <CardDescription className="text-center">

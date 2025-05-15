@@ -41,7 +41,10 @@ export const authService = {
 
   // Cerrar sesión
   logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout');
+    const token = localStorage.getItem('token');
+    if (token) {
+      await api.post('/api/auth/logout', { token });
+    }
   },
 
   // Para desarrollo: simular login (será eliminado en producción)
