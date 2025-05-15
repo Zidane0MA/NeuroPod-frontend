@@ -16,50 +16,104 @@ El frontend de NeuroPod es una aplicación web desarrollada en React que proporc
 
 ## Estructura del Proyecto
 
-### Componentes Principales
-
 ```
 src/
-├── components/          # Componentes reutilizables
-│   ├── ProtectedRoute.tsx     # Control de acceso basado en roles
-│   ├── ui/                    # Componentes UI base (shadcn)
-│   ├── dashboard/             # Componentes específicos del dashboard
-│   ├── modals/                # Componentes de modal
-│   └── pods/                  # Componentes relacionados con contenedores
-│
-├── context/             # Contextos de React
-│   ├── AuthContext.tsx        # Gestión de autenticación
-│   └── BalanceContext.tsx     # Gestión del saldo del usuario
-│
-├── pages/               # Páginas principales
-│   ├── Index.tsx              # Página de inicio
-│   ├── Login.tsx              # Inicio de sesión
-│   ├── Signup.tsx             # Registro
-│   ├── Dashboard.tsx          # Panel principal
-│   ├── Pricing.tsx            # Planes y precios
-│   ├── NotFound.tsx           # Página 404
-│   ├── admin/                 # Páginas exclusivas para administradores
-│   │   ├── Pods.tsx           # Gestión de todos los contenedores
-│   │   ├── PodDeploy.tsx      # Creación de nuevos contenedores
-│   │   ├── Users.tsx          # Gestión de usuarios
-│   │   ├── Settings.tsx       # Configuración del sistema
-│   │   └── Help.tsx           # Documentación para admins
-│   │
-│   └── client/                # Páginas exclusivas para clientes
-│       ├── Stats.tsx          # Estadísticas de uso
-│       ├── Pods.tsx           # Gestión de contenedores propios
-│       ├── PodDeploy.tsx      # Creación de nuevos contenedores
-│       ├── Settings.tsx       # Configuración de cuenta
-│       └── Help.tsx           # Documentación para usuarios
-│
-├── services/            # Servicios para API y WebSockets
-│   ├── api.ts                 # Cliente Axios para la API
-│   └── websocket.ts           # Cliente WebSocket
-│
-└── utils/               # Utilidades y helpers
-    ├── auth.ts                # Funciones de autenticación
-    ├── format.ts              # Formateo de datos
-    └── validation.ts          # Validación de formularios
+├─ App.css
+├─ App.tsx
+├─ components/
+│  ├─ ProtectedRoute.tsx
+│  ├─ admin/
+│  │  ├─ pods/
+│  │  │  ├─ EmptyPodsList.tsx
+│  │  │  ├─ PodActions.tsx
+│  │  │  ├─ PodCard.tsx
+│  │  │  ├─ PodConnectDialog.tsx
+│  │  │  ├─ PodLogsDialog.tsx
+│  │  │  ├─ PodsContainer.tsx
+│  │  │  ├─ PodsHeader.tsx
+│  │  │  └─ PodStats.tsx
+│  │  ├─ settings/
+│  │  │  ├─ LogsSettings.tsx
+│  │  │  ├─ PricingSettings.tsx
+│  │  │  ├─ ProfileSettings.tsx
+│  │  │  ├─ SettingsTabs.tsx
+│  │  │  ├─ SystemSettings.tsx
+│  │  │  ├─ TemplateEditDialog.tsx
+│  │  │  └─ TemplatesSettings.tsx
+│  │  └─ users/
+│  │     ├─ UserActionDialog.tsx
+│  │     ├─ UserDetailDialog.tsx
+│  │     ├─ UsersSearch.tsx
+│  │     └─ UsersTable.tsx
+│  ├─ client/
+│  │  └─ pods/
+│  │     ├─ ClientPodsHeader.tsx
+│  │     ├─ EmptyPodsList.tsx
+│  │     ├─ PodActions.tsx
+│  │     ├─ PodCard.tsx
+│  │     ├─ PodConnectDialog.tsx
+│  │     ├─ PodLogsDialog.tsx
+│  │     ├─ PodsContainer.tsx
+│  │     └─ PodStats.tsx
+│  ├─ dashboard/
+│  │  ├─ DashboardLayout.tsx
+│  │  ├─ DashboardNav.tsx
+│  │  └─ InstanceCard.tsx
+│  ├─ home/
+│  │  ├─ Features.tsx
+│  │  ├─ Footer.tsx
+│  │  ├─ Hero.tsx
+│  │  └─ Navbar.tsx
+│  ├─ pricing/
+│  │  └─ PricingCards.tsx
+│  └─ ui/                     # Componentes UI de shadcn
+│     ├─ accordion.tsx
+│     ├─ alert-dialog.tsx
+│     ├─ alert.tsx
+│     ├─ button.tsx
+│     ├─ card.tsx
+│     ├─ dialog.tsx
+│     ├─ progress.tsx
+│     ├─ toast.tsx
+│     └─ ... (otros componentes UI)
+├─ context/
+│  └─ AuthContext.tsx         # Gestión de autenticación
+├─ data/
+│  └─ mockUsers.ts            # Datos de muestra para desarrollo
+├─ hooks/
+│  ├─ use-mobile.tsx          # Hook para detectar dispositivos móviles
+│  └─ use-toast.ts            # Hook para notificaciones
+├─ index.css
+├─ lib/
+│  └─ utils.ts                # Utilidades generales
+├─ main.tsx                   # Punto de entrada de la aplicación
+├─ pages/
+│  ├─ Dashboard.tsx           # Dashboard principal
+│  ├─ Index.tsx               # Página de inicio
+│  ├─ Login.tsx               # Inicio de sesión
+│  ├─ NotFound.tsx            # Página 404
+│  ├─ Pricing.tsx             # Planes y precios
+│  ├─ Signup.tsx              # Registro de usuarios
+│  ├─ admin/                  # Páginas de administrador
+│  │  ├─ Help.tsx
+│  │  ├─ PodDeploy.tsx
+│  │  ├─ Pods.tsx
+│  │  ├─ Settings.tsx
+│  │  └─ Users.tsx
+│  └─ client/                 # Páginas de cliente
+│     ├─ Help.tsx
+│     ├─ PodDeploy.tsx
+│     ├─ Pods.tsx
+│     ├─ Settings.tsx
+│     └─ Stats.tsx
+├─ services/
+│  ├─ api.ts                  # Cliente Axios para API
+│  └─ auth.service.ts         # Servicios de autenticación
+├─ types/
+│  └─ user.ts                 # Tipos de datos de usuario
+├─ utils/
+│  └─ podUtils.ts             # Utilidades para pods
+└─ vite-env.d.ts              # Tipos de Vite
 ```
 
 ## Rutas del Frontend
@@ -93,6 +147,8 @@ src/
 - ✅ Estructura básica de rutas y navegación
 - ✅ Diseño UI con TailwindCSS y shadcn-ui
 - ✅ Componente de ruta protegida con control de acceso basado en roles
+- ✅ Autenticación básica con login simulado
+- ✅ Redirección basada en roles (admin/client)
 
 ### Pendientes de Implementar
 - ⏳ **Contexto de Saldo**: 
@@ -100,10 +156,10 @@ src/
   - Mostrar saldo real para clientes (10€ iniciales)
   - Actualización en tiempo real al usar contenedores
 
-- ⏳ **Autenticación**:
-  - Integración con Google OAuth2
+- ⏳ **Autenticación con Google OAuth2**:
+  - Integración completa con Google OAuth2
   - Almacenamiento y gestión de JWT
-  - Redirección basada en roles (admin/client)
+  - Refinar el sistema de autenticación actual
 
 - ⏳ **Gestión de Pods**:
   - Listar todos los pods con estado actual
@@ -136,7 +192,7 @@ El frontend se comunica con el backend a través de:
    - Gestión de pods: `/api/pods/start`, `/api/pods/stop`
    - Administración: `/api/admin/users`, `/api/admin/settings`
 
-2. **WebSockets**:
+2. **WebSockets** (pendiente de implementar):
    - Actualizaciones en tiempo real del estado de los pods
    - Notificaciones de eventos del sistema
    - Actualización de saldo al consumir recursos
@@ -162,7 +218,6 @@ El frontend se comunica con el backend a través de:
 3. Crea un archivo `.env.local` con las siguientes variables:
    ```
    VITE_API_URL=http://localhost:3000
-   VITE_WS_URL=ws://localhost:3000
    VITE_GOOGLE_CLIENT_ID=tu-google-client-id
    ```
 
@@ -173,12 +228,19 @@ El frontend se comunica con el backend a través de:
 
 5. Accede a la aplicación en `http://localhost:5173`
 
-## Nota Importante
+## Notas Importantes
 
-El frontend está diseñado para trabajar con:
-- Backend en `http://localhost:3000` (o `api.neuropod.online` en producción)
-- Cloudflare Tunnel para exponer la aplicación a Internet
-- Kubernetes para gestionar los contenedores de usuario
+- El frontend incluye un modo de simulación para desarrollo que permite iniciar sesión sin un backend real.
+- Para usar el modo de login simulado, ingresa cualquier correo electrónico (usa `lolerodiez@gmail.com` para rol de administrador).
+- Para la integración completa, asegúrate de que el backend esté en ejecución en `http://localhost:3000`.
+- El sistema está diseñado para trabajar con Cloudflare Tunnel y Kubernetes en producción.
+
+## Variables de Entorno
+
+| Variable                | Descripción                          | Valor por defecto          |
+|-------------------------|--------------------------------------|----------------------------|
+| VITE_API_URL            | URL del backend                      | http://localhost:3000      |
+| VITE_GOOGLE_CLIENT_ID   | ID de cliente para Google OAuth2     | -                          |
 
 ## Contacto
 Para más información sobre el desarrollo del frontend, contacta a lolerodiez@gmail.com

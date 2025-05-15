@@ -1,38 +1,177 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types/user";
+import { authService } from "@/services/auth.service";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string) => void;
-  logout: () => void;
+  isLoading: boolean;
+  isOfflineMode: boolean;
+  login: (email: string) => Promise<void>;
+  loginWithGoogle: (googleToken: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
-  login: () => {},
-  logout: () => {},
+  isLoading: false,
+  isOfflineMode: false,
+  login: async () => {},
+  loginWithGoogle: async () => {},
+  logout: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // Check local storage on initial load
+  // Verificar token en localStorage al cargar
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const checkAuth = async () => {
+      // Obtener la ruta actual
+      const currentPath = window.location.pathname;
+      
+      // Lista de rutas públicas que no requieren verificación
+      const publicRoutes = ['/', '/login', '/signup', '/pricing'];
+      
+      // Si estamos en una ruta pública, no verificamos la autenticación
+      if (publicRoutes.includes(currentPath)) {
+        setIsLoading(false);
+        return;
+      }
+      
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          // Verificar si el token es válido
+          const user = await authService.verifyToken();
+          setUser(user);
+          setIsOfflineMode(false);
+        } catch (error: any) {
+          console.error('Error al verificar token:', error);
+          
+          // Si el error menciona que el backend no está disponible y estamos en desarrollo,
+          // usar el usuario almacenado en localStorage automáticamente
+          if (import.meta.env.DEV && error.message?.includes("Backend no disponible")) {
+            console.warn("Backend no disponible durante la verificación de token, usando datos locales");
+            
+            // Recuperar usuario del localStorage
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+              setUser(JSON.parse(storedUser));
+              setIsOfflineMode(true);
+              toast({
+                title: "Modo sin conexión activado",
+                description: "Estás trabajando sin conexión al servidor.",
+                variant: "warning"
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+          
+          // Si no podemos usar el modo sin conexión, limpiar datos locales
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
-  // Mock login function that sets user based on email
-  const login = (email: string) => {
+  // Iniciar sesión con Google
+  const loginWithGoogle = async (googleToken: string) => {
+    try {
+      setIsLoading(true);
+      const { token, user } = await authService.loginWithGoogle(googleToken);
+      setUser(user);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      setIsOfflineMode(false);
+      navigate("/dashboard");
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: `Bienvenido ${user.name || user.email}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error de autenticación",
+        description: error.response?.data?.message || "No se pudo iniciar sesión",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Para desarrollo: login con email (será reemplazado por Google OAuth)
+  const login = async (email: string) => {
+    try {
+      setIsLoading(true);
+      console.log('Intentando login con email:', email);
+      
+      // Intentar login con el mockLogin service
+      const { token, user } = await authService.mockLogin(email);
+      
+      // Si llegamos aquí, el login fue exitoso, guardamos los datos
+      console.log('Login exitoso, guardando datos del usuario');
+      setUser(user);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      setIsOfflineMode(false);
+      
+      // Mostrar mensaje de éxito según el rol
+      if (user.role === 'admin') {
+        toast({
+          title: "Bienvenido, Administrador",
+          description: `Iniciaste sesión como ${user.name || user.email}`,
+        });
+      } else {
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: `Bienvenido ${user.name || user.email}`,
+        });
+      }
+      
+      // Redirigir al dashboard después del login
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Error durante login:", error);
+      
+      // Si estamos en modo desarrollo y hay un error que menciona problemas con el backend
+      if (import.meta.env.DEV && 
+          (error.message?.includes("Backend no disponible") || 
+           error.message?.includes("Endpoint mock-login no encontrado") ||
+           error.code === 'ECONNABORTED')) {
+        console.warn("Backend no disponible, entrando en modo sin conexión automáticamente");
+        setIsOfflineMode(true);
+        mockLoginFallback(email);
+        return;
+      }
+      
+      // Mostrar mensaje de error para otros tipos de error
+      const errorMessage = error.response?.data?.message || error.message || "No se pudo iniciar sesión";
+      toast({
+        title: "Error de autenticación",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fallback en caso de que el backend no esté disponible (solo en desarrollo)
+  const mockLoginFallback = (email: string) => {
     const newUser: User = 
       email === "lolerodiez@gmail.com" 
         ? { 
@@ -60,17 +199,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setUser(newUser);
     localStorage.setItem("user", JSON.stringify(newUser));
+    localStorage.setItem("token", "mock-token");
+    setIsOfflineMode(true);
+    
+    // Redirigir al dashboard
     navigate("/dashboard");
+    
+    toast({
+      title: "Modo sin conexión",
+      description: `Sesión simulada para ${email}`,
+      variant: "warning"
+    });
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    navigate("/login");
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      // Intentar logout en el servidor solo si no estamos en modo sin conexión
+      if (!isOfflineMode) {
+        await authService.logout();
+      }
+    } catch (error) {
+      // Ignorar errores en logout
+    } finally {
+      // Siempre limpiar datos locales
+      setUser(null);
+      setIsOfflineMode(false);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isLoading, 
+      isOfflineMode,
+      login, 
+      loginWithGoogle, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );
