@@ -1,7 +1,6 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Terminal } from "lucide-react";
+import { Terminal, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +13,7 @@ import {
 interface PodLogsDialogProps {
   podName: string;
   logs: string;
-  viewLogs: (podName: string) => void;
+  viewLogs: (podId: string) => void;
 }
 
 export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({ 
@@ -22,13 +21,24 @@ export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({
   logs, 
   viewLogs 
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleOpenLogs = () => {
+    viewLogs(podName);
+    setIsOpen(true);
+  };
+
+  const handleRefreshLogs = () => {
+    viewLogs(podName);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
           className="flex gap-2 items-center"
-          onClick={() => viewLogs(podName)}
+          onClick={handleOpenLogs}
         >
           <Terminal className="h-4 w-4" />
           Logs
@@ -36,10 +46,23 @@ export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>Logs de {podName}</DialogTitle>
-          <DialogDescription>
-            Registro de actividad del pod
-          </DialogDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <DialogTitle>Logs de {podName}</DialogTitle>
+              <DialogDescription>
+                Registro de actividad del pod
+              </DialogDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRefreshLogs}
+              className="h-8 w-8"
+              title="Actualizar logs"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
         <div className="mt-4">
           <div className="bg-black rounded-md p-4 h-[300px] text-white font-mono text-sm overflow-auto whitespace-pre-line">

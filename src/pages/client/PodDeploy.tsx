@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,14 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Server, Cpu, HardDrive } from "lucide-react";
+import { Server, HardDrive } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { createNewPod, Pod } from "@/utils/podUtils";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { podService, PodCreateParams } from "@/services/pod.service";
 
 interface GpuOption {
   id: string;
@@ -68,6 +67,7 @@ const ClientPodDeploy = () => {
   const [template, setTemplate] = useState("ubuntu");
   const [deploymentType, setDeploymentType] = useState("template"); // template o docker
   const [dockerImage, setDockerImage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -80,34 +80,71 @@ const ClientPodDeploy = () => {
     }
   };
 
-  const handleStartDeploy = () => {
-    // Crear el nuevo pod
-    const newPod = createNewPod(
-      podName,
-      deploymentType === "template" ? template : dockerImage,
-      containerDiskSize,
-      volumeDiskSize,
-      selectedGpu,
-      ports
-    );
-    
-    // Guardar el nuevo pod en localStorage
-    const savedPods = localStorage.getItem('clientPods');
-    let updatedPods: Pod[] = [];
-    
-    if (savedPods) {
-      updatedPods = [...JSON.parse(savedPods), newPod];
-    } else {
-      updatedPods = [newPod];
+  const handleStartDeploy = async () => {
+    if (!podName.trim()) {
+      toast.error('El nombre del pod es obligatorio');
+      return;
     }
     
-    localStorage.setItem('clientPods', JSON.stringify(updatedPods));
+    if (deploymentType === "docker" && !dockerImage.trim()) {
+      toast.error('La imagen Docker es obligatoria');
+      return;
+    }
     
-    // Mostrar mensaje de éxito
-    toast.success(`Pod ${podName} desplegado correctamente`);
+    if (!selectedGpu) {
+      toast.error('Debes seleccionar una GPU');
+      return;
+    }
     
-    // Redirigir a la página de pods
-    navigate("/client/pods");
+    if (!hasEnoughBalance) {
+      toast.error('Saldo insuficiente para desplegar este pod');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Configurar los parámetros para la creación del pod según la interfaz definida
+      const params: PodCreateParams = {
+        name: podName,
+        deploymentType: deploymentType,
+        template: deploymentType === "template" ? template : undefined,
+        dockerImage: deploymentType === "docker" ? dockerImage : undefined,
+        gpu: selectedGpu.id,
+        containerDiskSize,
+        volumeDiskSize,
+        ports,
+        enableJupyter: useJupyter
+        // No se especifica assignToUser ya que es un despliegue para el usuario actual
+      };
+      
+      console.log('Enviando datos de creación de pod:', params);
+      
+      // Llamar al servicio para crear el pod
+      const response = await podService.createPod(params);
+      
+      // Mostrar mensaje de éxito
+      toast.success(`Pod ${podName} desplegado correctamente`);
+      
+      // Mostrar la URL generada para el subdominio
+      if (response.url) {
+        toast.info(`Pod accesible en: ${response.url}`);
+      }
+      
+      // Redirigir a la página de pods
+      navigate("/client/pods");
+    } catch (error: any) {
+      console.error('Error al desplegar pod:', error);
+      
+      // Mostrar el mensaje de error del servidor si está disponible
+      if (error.response?.data?.message) {
+        toast.error(`Error: ${error.response.data.message}`);
+      } else {
+        toast.error('Error al desplegar el pod. Por favor, intenta de nuevo.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Calculate total cost
@@ -390,10 +427,19 @@ const ClientPodDeploy = () => {
                 className="w-full md:w-auto" 
                 size="lg" 
                 onClick={handleStartDeploy}
-                disabled={!podName.trim() || !hasEnoughBalance || (deploymentType === "docker" && !dockerImage.trim())}
+                disabled={!podName.trim() || !hasEnoughBalance || (deploymentType === "docker" && !dockerImage.trim()) || isSubmitting}
               >
-                <Server className="mr-2 h-4 w-4" />
-                Start Deploy
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                    Desplegando...
+                  </div>
+                ) : (
+                  <>
+                    <Server className="mr-2 h-4 w-4" />
+                    Start Deploy
+                  </>
+                )}
               </Button>
             </div>
           </form>

@@ -102,10 +102,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Inicio de sesión exitoso",
         description: `Bienvenido ${user.name || user.email}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let description = "No se pudo iniciar sesión";
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as any).response?.data?.message === "string"
+      ) {
+        description = (error as any).response.data.message;
+      } else if (error instanceof Error && error.message) {
+        description = error.message;
+      }
       toast({
         title: "Error de autenticación",
-        description: error.response?.data?.message || "No se pudo iniciar sesión",
+        description,
         variant: "destructive",
       });
     } finally {

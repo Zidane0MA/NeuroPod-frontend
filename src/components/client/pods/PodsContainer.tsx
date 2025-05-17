@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Pod } from "@/utils/podUtils";
 import { PodCard } from "./PodCard";
 import { EmptyPodsList } from "./EmptyPodsList";
 
 interface PodsContainerProps {
-  pods: Pod[];
+  pods: Pod[] | null | undefined;
   logs: string;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;
@@ -19,6 +18,11 @@ export const PodsContainer: React.FC<PodsContainerProps> = ({
   onDeletePod,
   viewLogs,
 }) => {
+  // Verificar si pods es undefined o null
+  if (!pods) {
+    return <EmptyPodsList />;
+  }
+
   return (
     <div className="grid gap-6">
       {pods.length > 0 ? (
