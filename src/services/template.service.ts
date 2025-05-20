@@ -7,7 +7,7 @@ export const templateService = {
    */
   async getTemplates(): Promise<Template[]> {
     try {
-      const response = await api.get("/templates");
+      const response = await api.get("/api/templates");
       return response.data;
     } catch (error) {
       console.error("Error fetching templates:", error);
@@ -21,7 +21,8 @@ export const templateService = {
   async createTemplate(template: CreateTemplateParams): Promise<Template> {
     try {
       const response = await api.post("/templates", template);
-      return response.data;
+      // El backend retorna { message: ..., template: ... }
+      return response.data.template || response.data;
     } catch (error) {
       console.error("Error creating template:", error);
       throw error;
@@ -34,7 +35,8 @@ export const templateService = {
   async updateTemplate(id: string, template: Partial<CreateTemplateParams>): Promise<Template> {
     try {
       const response = await api.put(`/templates/${id}`, template);
-      return response.data;
+      // El backend retorna { message: ..., template: ... }
+      return response.data.template || response.data;
     } catch (error) {
       console.error("Error updating template:", error);
       throw error;

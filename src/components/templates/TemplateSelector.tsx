@@ -38,11 +38,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const fetchTemplates = async () => {
     setLoading(true);
     try {
+      console.log('TemplateSelector: Fetching templates...');
       const data = await templateService.getTemplates();
+      console.log('TemplateSelector: Templates received:', data);
       setTemplates(data);
     } catch (err) {
+      console.error('TemplateSelector: Error fetching templates:', err);
       toast.error("Error al cargar plantillas");
-      console.error("Error fetching templates:", err);
     } finally {
       setLoading(false);
     }
@@ -128,8 +130,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span>Puertos: {template.ports}</span>
+                    <div className="text-xs">
+                      <span className="font-medium">HTTP:</span> {template.httpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
+                      {template.tcpPorts.length > 0 && (
+                        <><br /><span className="font-medium">TCP:</span> {template.tcpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}</>
+                      )}
                     </div>
                     <div className="flex justify-between">
                       <span>Container Disk: {template.containerDiskSize} GB</span>

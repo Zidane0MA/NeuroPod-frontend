@@ -15,6 +15,8 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { podService, PodCreateParams } from "@/services/pod.service";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { Template } from "@/types/template";
 
 interface GpuOption {
   id: string;
@@ -69,6 +71,7 @@ const AdminPodDeploy = () => {
   const [dockerImage, setDockerImage] = useState("");
   const [userAssign, setUserAssign] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -287,7 +290,8 @@ const AdminPodDeploy = () => {
                           onSelectTemplate={(template) => {
                             setSelectedTemplate(template);
                             // Auto-fill form with template configuration
-                            setPorts(template.ports);
+                            const allPorts = template.httpPorts.map(p => p.port.toString()).join(", ");
+                            setPorts(allPorts);
                             setContainerDiskSize(template.containerDiskSize);
                             setVolumeDiskSize(template.volumeDiskSize);
                           }}
@@ -334,7 +338,7 @@ const AdminPodDeploy = () => {
                         htmlFor="jupyter"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        Usar Jupyter Notebook (puerto 8888)
+                        Usar Jupyter Lab (puerto 8888)
                       </label>
                     </div>
                   </div>
@@ -351,7 +355,7 @@ const AdminPodDeploy = () => {
                       </div>
                       <Slider
                         defaultValue={[containerDiskSize]}
-                        max={100}
+                        max={50}
                         min={5}
                         step={5}
                         onValueChange={(val) => setContainerDiskSize(val[0])}
@@ -369,7 +373,7 @@ const AdminPodDeploy = () => {
                       </div>
                       <Slider
                         defaultValue={[volumeDiskSize]}
-                        max={500}
+                        max={150}
                         min={10}
                         step={10}
                         onValueChange={(val) => setVolumeDiskSize(val[0])}
