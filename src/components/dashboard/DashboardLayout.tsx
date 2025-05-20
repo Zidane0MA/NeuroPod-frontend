@@ -16,7 +16,8 @@ import {
   Database, 
   Activity, 
   AreaChart,
-  Menu 
+  Menu,
+  FileBox
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -56,6 +57,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
       icon: Server,
       href: "/admin/pods",
       active: window.location.pathname.includes("/admin/pods"),
+    },
+    {
+      title: "Plantillas",
+      icon: FileBox,
+      href: "/admin/templates",
+      active: window.location.pathname === "/admin/templates",
     },
     {
       title: "Usuarios",

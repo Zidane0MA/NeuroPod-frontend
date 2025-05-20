@@ -5,14 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   User,
   Settings as SettingsIcon, 
-  FileBox, 
   DollarSign, 
   HardDrive, 
   ServerCog
 } from "lucide-react";
 import { ProfileSettings } from "./ProfileSettings";
 import { SystemSettings } from "./SystemSettings";
-import { TemplatesSettings } from "./TemplatesSettings";
 import { PricingSettings } from "./PricingSettings";
 import { LogsSettings } from "./LogsSettings";
 
@@ -30,10 +28,6 @@ export const SettingsTabs = () => {
               <TabsTrigger value="system" className="flex gap-1 items-center">
                 <ServerCog className="h-3.5 w-3.5" />
                 Sistema
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex gap-1 items-center">
-                <FileBox className="h-3.5 w-3.5" />
-                Plantillas
               </TabsTrigger>
               <TabsTrigger value="pricing" className="flex gap-1 items-center">
                 <DollarSign className="h-3.5 w-3.5" />
@@ -54,10 +48,6 @@ export const SettingsTabs = () => {
       
       <TabsContent value="system" className="space-y-4">
         <SystemSettings />
-      </TabsContent>
-      
-      <TabsContent value="templates" className="space-y-4">
-        <TemplatesSettings />
       </TabsContent>
       
       <TabsContent value="pricing" className="space-y-4">

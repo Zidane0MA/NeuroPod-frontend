@@ -16,6 +16,7 @@ import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 import AdminHelp from "./pages/admin/Help";
 import AdminPodDeploy from "./pages/admin/PodDeploy";
+import AdminTemplates from "./pages/admin/Templates";
 import ClientStats from "./pages/client/Stats";
 import ClientPods from "./pages/client/Pods";
 import ClientSettings from "./pages/client/Settings";
@@ -47,6 +48,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin/pods" element={<ProtectedRoute requiredRole="admin"><AdminPods /></ProtectedRoute>} />
             <Route path="/admin/pods/deploy" element={<ProtectedRoute requiredRole="admin"><AdminPodDeploy /></ProtectedRoute>} />
+            <Route path="/admin/templates" element={<ProtectedRoute requiredRole="admin"><AdminTemplates /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
             <Route path="/admin/help" element={<ProtectedRoute requiredRole="admin"><AdminHelp /></ProtectedRoute>} />

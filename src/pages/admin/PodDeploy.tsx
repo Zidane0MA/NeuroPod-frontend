@@ -92,6 +92,11 @@ const AdminPodDeploy = () => {
       return;
     }
     
+    if (deploymentType === "template" && !selectedTemplate) {
+      toast.error('Debes seleccionar una plantilla');
+      return;
+    }
+    
     if (!selectedGpu) {
       toast.error('Debes seleccionar una GPU');
       return;
@@ -104,8 +109,9 @@ const AdminPodDeploy = () => {
       const params: PodCreateParams = {
         name: podName,
         deploymentType: deploymentType,
-        template: deploymentType === "template" ? template : undefined,
-        dockerImage: deploymentType === "docker" ? dockerImage : undefined,
+        template: deploymentType === "template" && selectedTemplate ? selectedTemplate.id : undefined,
+        dockerImage: deploymentType === "docker" ? dockerImage : 
+                    (deploymentType === "template" && selectedTemplate ? selectedTemplate.dockerImage : undefined),
         gpu: selectedGpu.id,
         containerDiskSize,
         volumeDiskSize,
@@ -277,16 +283,16 @@ const AdminPodDeploy = () => {
                     {deploymentType === "template" ? (
                       <div className="space-y-2">
                         <Label>Template</Label>
-                        <RadioGroup value={template} onValueChange={setTemplate} className="flex flex-col space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="ubuntu" id="ubuntu" />
-                            <Label htmlFor="ubuntu">Ubuntu (por defecto)</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="comfyui" id="comfyui" />
-                            <Label htmlFor="comfyui">ComfyUI</Label>
-                          </div>
-                        </RadioGroup>
+                        <TemplateSelector 
+                          onSelectTemplate={(template) => {
+                            setSelectedTemplate(template);
+                            // Auto-fill form with template configuration
+                            setPorts(template.ports);
+                            setContainerDiskSize(template.containerDiskSize);
+                            setVolumeDiskSize(template.volumeDiskSize);
+                          }}
+                          selectedTemplate={selectedTemplate}
+                        />
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -418,8 +424,14 @@ const AdminPodDeploy = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Tipo</span>
-                    <span className="capitalize">{deploymentType === "template" ? template : "Docker"}</span>
+                    <span className="capitalize">{deploymentType === "template" ? "Template" : "Docker"}</span>
                   </div>
+                  {deploymentType === "template" && selectedTemplate && (
+                    <div className="flex justify-between">
+                      <span>Template</span>
+                      <span>{selectedTemplate.name}</span>
+                    </div>
+                  )}
                   {deploymentType === "docker" && (
                     <div className="flex justify-between">
                       <span>Imagen</span>
