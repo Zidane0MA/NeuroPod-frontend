@@ -233,13 +233,13 @@ const AdminTemplates = () => {
       )}
       
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-8">
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8">
           <DialogHeader>
             <DialogTitle>{editMode ? 'Editar Plantilla' : 'Crear Plantilla'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 h-full">
             <ScrollArea className="w-full pr-6 max-h-[70vh] overflow-y-auto no-scrollbar">
-              <div className="space-y-6 pb-4">
+              <div className="space-y-8 pb-4">
               {/* Nombre y Docker Image */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -357,8 +357,8 @@ const AdminTemplates = () => {
               </div>
 
               {/* Tamaños de disco */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-6">
                   <Label>Container Disk Size: {form.containerDiskSize} GB</Label>
                   <Slider 
                     min={5} 
@@ -368,7 +368,7 @@ const AdminTemplates = () => {
                     onValueChange={val => handleSliderChange("containerDiskSize", val[0])} 
                   />
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <Label>Volume Disk Size: {form.volumeDiskSize} GB</Label>
                   <Slider 
                     min={10} 

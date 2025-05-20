@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,15 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Server, HardDrive } from "lucide-react";
+import { Server, HardDrive, HelpCircle } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { podService, PodCreateParams } from "@/services/pod.service";
-import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { Template } from "@/types/template";
 
 interface GpuOption {
@@ -67,14 +67,41 @@ const ClientPodDeploy = () => {
   const [podName, setPodName] = useState("");
   const [ports, setPorts] = useState("8888");
   const [template, setTemplate] = useState("ubuntu");
-  const [deploymentType, setDeploymentType] = useState("template"); // template o docker
+  const [deploymentType, setDeploymentType] = useState("template");
   const [dockerImage, setDockerImage] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   
   const form = useForm();
+
+  const handleTemplateSelect = useCallback((template: Template) => {
+    setSelectedTemplate(template);
+    const allPorts = template.httpPorts.map(p => p.port.toString()).join(", ");
+    setPorts(allPorts);
+    setContainerDiskSize(template.containerDiskSize);
+    setVolumeDiskSize(template.volumeDiskSize);
+    setShowTemplateModal(false);
+  }, []);
+
+  const handleOpenTemplateModal = useCallback(async () => {
+    setShowTemplateModal(true);
+    setLoadingTemplates(true);
+    try {
+      const { templateService } = await import('@/services/template.service');
+      const templates = await templateService.getTemplates();
+      setAvailableTemplates(templates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast.error('Error al cargar plantillas');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, []);
 
   const handleGpuSelect = (gpu: GpuOption) => {
     if (gpu.available) {
@@ -112,7 +139,6 @@ const ClientPodDeploy = () => {
     try {
       setIsSubmitting(true);
       
-      // Configurar los parámetros para la creación del pod según la interfaz definida
       const params: PodCreateParams = {
         name: podName,
         deploymentType: deploymentType,
@@ -124,28 +150,22 @@ const ClientPodDeploy = () => {
         volumeDiskSize,
         ports,
         enableJupyter: useJupyter
-        // No se especifica assignToUser ya que es un despliegue para el usuario actual
       };
       
       console.log('Enviando datos de creación de pod:', params);
       
-      // Llamar al servicio para crear el pod
       const response = await podService.createPod(params);
       
-      // Mostrar mensaje de éxito
       toast.success(`Pod ${podName} desplegado correctamente`);
       
-      // Mostrar la URL generada para el subdominio
       if (response.url) {
         toast.info(`Pod accesible en: ${response.url}`);
       }
       
-      // Redirigir a la página de pods
       navigate("/client/pods");
     } catch (error: any) {
       console.error('Error al desplegar pod:', error);
       
-      // Mostrar el mensaje de error del servidor si está disponible
       if (error.response?.data?.message) {
         toast.error(`Error: ${error.response.data.message}`);
       } else {
@@ -156,13 +176,11 @@ const ClientPodDeploy = () => {
     }
   };
 
-  // Calculate total cost
   const containerDiskPrice = 0.05 * containerDiskSize;
   const volumeDiskPrice = 0.1 * volumeDiskSize;
   const gpuPrice = selectedGpu?.price || 0;
   const totalPrice = gpuPrice + containerDiskPrice + volumeDiskPrice;
 
-  // Check if user has enough balance
   const hasEnoughBalance = (user?.balance || 0) >= totalPrice;
 
   return (
@@ -184,7 +202,7 @@ const ClientPodDeploy = () => {
           <CardTitle>Selecciona una GPU</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {gpuOptions.map((gpu) => (
               <Card 
                 key={gpu.id} 
@@ -230,8 +248,8 @@ const ClientPodDeploy = () => {
                 <CardTitle>Configuración del Pod</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
+                  <div className="space-y-4 lg:order-1">
                     <FormField
                       control={form.control}
                       name="podName"
@@ -271,17 +289,39 @@ const ClientPodDeploy = () => {
                     {deploymentType === "template" ? (
                       <div className="space-y-2">
                         <Label>Template</Label>
-                        <TemplateSelector 
-                          onSelectTemplate={(template) => {
-                            setSelectedTemplate(template);
-                            // Auto-fill form with template configuration
-                            const allPorts = template.httpPorts.map(p => p.port.toString()).join(", ");
-                            setPorts(allPorts);
-                            setContainerDiskSize(template.containerDiskSize);
-                            setVolumeDiskSize(template.volumeDiskSize);
-                          }}
-                          selectedTemplate={selectedTemplate}
-                        />
+                        <div className="flex items-center gap-2">
+                          {selectedTemplate ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start overflow-hidden text-ellipsis"
+                                type="button"
+                                onClick={handleOpenTemplateModal}
+                              >
+                                {selectedTemplate.name} seleccionado
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                type="button"
+                                onClick={() => {
+                                  // TODO: Show template description
+                                }}
+                              >
+                                <HelpCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start"
+                              type="button"
+                              onClick={handleOpenTemplateModal}
+                            >
+                              Elegir template
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -298,17 +338,36 @@ const ClientPodDeploy = () => {
                       </div>
                     )}
                   
-                    <div className="space-y-2">
-                      <Label htmlFor="ports">Puertos (separados por comas)</Label>
+                    <div className="space-y-2 lg:col-span-2 pt-4 lg:pt-0">
+                      <Label htmlFor="ports">Puertos HTTP expuestos (separados por comas)</Label>
                       <Input 
                         id="ports" 
                         value={ports} 
                         onChange={(e) => setPorts(e.target.value)} 
-                        placeholder="8888, 7860"
+                        placeholder={deploymentType === "docker" ? "8888" : "puertos del template"}
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {deploymentType === "template" 
+                          ? "Los puertos se cargan automáticamente desde el template seleccionado" 
+                          : "Especifica los puertos HTTP que necesitas exponer"}
+                      </p>
                     </div>
                     
-                    <div className="flex items-center space-x-2 pt-2">
+                    <div className="space-y-2 lg:col-span-2 pt-2">
+                      <Label htmlFor="tcpPorts">Puertos TCP expuestos (separados por comas) - Decorativo</Label>
+                      <Input 
+                        id="tcpPorts" 
+                        value="" 
+                        onChange={() => {}} 
+                        placeholder="22, 3306"
+                        disabled
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Funcionalidad no implementada. Solo para visualización.
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 pt-2 lg:col-span-2">
                       <Checkbox 
                         id="jupyter" 
                         checked={useJupyter} 
@@ -328,7 +387,7 @@ const ClientPodDeploy = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-6 lg:order-2">
                     <div className="space-y-4">
                       <Label className="flex items-center gap-2">
                         <HardDrive className="h-4 w-4" />
@@ -461,6 +520,58 @@ const ClientPodDeploy = () => {
           </form>
         </Form>
       )}
+      
+      {/* Template Selection Modal */}
+      <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+        <DialogContent className="max-w-3xl h-[80vh] max-h-[800px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Seleccionar Plantilla</DialogTitle>
+          </DialogHeader>
+          
+          {loadingTemplates ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : availableTemplates.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-center">
+              <div>
+                <p className="text-muted-foreground mb-2">No hay plantillas disponibles</p>
+                <p className="text-sm">Contacta con el administrador para crear nuevas plantillas</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
+              {availableTemplates.map((template) => (
+                <Card 
+                  key={template.id} 
+                  className={`cursor-pointer border-2 hover:border-primary hover:shadow-md transition-all
+                    ${selectedTemplate?.id === template.id ? 'border-primary' : 'border-border'}`}
+                  onClick={() => handleTemplateSelect(template)}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle>{template.name}</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium">Imagen:</span> {template.dockerImage}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="text-sm space-y-2">
+                    <div className="text-xs">
+                      <span className="font-medium">HTTP:</span> {template.httpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
+                      {template.tcpPorts.length > 0 && (
+                        <><br /><span className="font-medium">TCP:</span> {template.tcpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}</>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Container Disk: {template.containerDiskSize} GB</span>
+                      <span>Volume Disk: {template.volumeDiskSize} GB</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

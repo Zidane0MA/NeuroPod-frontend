@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
@@ -20,7 +20,7 @@ interface TemplateSelectorProps {
   selectedTemplate: Template | null;
 }
 
-export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
+export const TemplateSelector: React.FC<TemplateSelectorProps> = memo(({
   onSelectTemplate,
   selectedTemplate
 }) => {
@@ -50,10 +50,18 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     }
   };
 
-  const handleSelect = (template: Template) => {
+  const handleSelect = useCallback((template: Template) => {
     onSelectTemplate(template);
     setShowModal(false);
-  };
+  }, [onSelectTemplate]);
+
+  const handleOpenModal = useCallback(() => {
+    setShowModal(true);
+  }, []);
+
+  const handleOpenDescription = useCallback(() => {
+    setShowDescription(true);
+  }, []);
 
   return (
     <>
@@ -63,7 +71,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
             <Button
               variant="outline"
               className="w-full justify-start overflow-hidden text-ellipsis"
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenModal}
             >
               {selectedTemplate.name} seleccionado
             </Button>
@@ -74,7 +82,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    onClick={() => setShowDescription(true)}
+                    onClick={handleOpenDescription}
                   >
                     <HelpCircle className="h-4 w-4" />
                   </Button>
@@ -89,7 +97,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenModal}
           >
             Elegir template
           </Button>
@@ -163,4 +171,4 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       </Dialog>
     </>
   );
-};
+});
