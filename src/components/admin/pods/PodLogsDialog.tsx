@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Terminal, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Pod } from "@/utils/podUtils";
+import { LegacyPod } from "@/types/pod";
 
 interface PodLogsDialogProps {
-  pod: Pod;
+  pod: LegacyPod;
   viewLogs: (podId: string) => void;
   logs: string;
 }

@@ -1,40 +1,29 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Play, StopCircle, Trash2 } from "lucide-react";
-import { Pod } from "@/utils/podUtils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PodConnectDialog } from "./PodConnectDialog";
 import { PodLogsDialog } from "./PodLogsDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
+import { LegacyPod } from "@/types/pod";
 
 interface PodActionsProps {
-  pod: Pod;
-  logs: string;
+  pod: LegacyPod;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;
   viewLogs: (podName: string) => void;
+  logs: string;
 }
 
 export const PodActions: React.FC<PodActionsProps> = ({
   pod,
-  logs,
   onTogglePod,
   onDeletePod,
-  viewLogs
+  viewLogs,
+  logs
 }) => {
-  return (
-    <div className="lg:col-span-2 flex flex-wrap justify-end items-center gap-3">
-      {pod.status === "running" ? (
+  const getToggleButton = () => {
+    if (pod.status === "running") {
+      return (
         <Button 
           variant="outline" 
           className="flex gap-2 items-center"
@@ -43,7 +32,9 @@ export const PodActions: React.FC<PodActionsProps> = ({
           <StopCircle className="h-4 w-4" />
           Detener
         </Button>
-      ) : (
+      );
+    } else if (pod.status === "stopped") {
+      return (
         <Button 
           variant="outline" 
           className="flex gap-2 items-center"
@@ -52,11 +43,39 @@ export const PodActions: React.FC<PodActionsProps> = ({
           <Play className="h-4 w-4" />
           Iniciar
         </Button>
-      )}
+      );
+    } else if (pod.status === "creating") {
+      return (
+        <Button 
+          variant="outline" 
+          className="flex gap-2 items-center"
+          disabled
+        >
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          Iniciando...
+        </Button>
+      );
+    } else {
+      return (
+        <Button 
+          variant="outline" 
+          className="flex gap-2 items-center"
+          disabled
+        >
+          <StopCircle className="h-4 w-4" />
+          Estado desconocido
+        </Button>
+      );
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap justify-end items-center gap-3">
+      {getToggleButton()}
       
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="outline" className="flex gap-2 items-center text-red-500">
+          <Button variant="outline" className="flex gap-2 items-center text-red-500 hover:text-red-700">
             <Trash2 className="h-4 w-4" />
             Eliminar
           </Button>
@@ -81,7 +100,7 @@ export const PodActions: React.FC<PodActionsProps> = ({
       </AlertDialog>
       
       <PodConnectDialog pod={pod} />
-      <PodLogsDialog podName={pod.name} logs={logs} viewLogs={viewLogs} />
+      <PodLogsDialog pod={pod} viewLogs={viewLogs} logs={logs} />
     </div>
   );
 };

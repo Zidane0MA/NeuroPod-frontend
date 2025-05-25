@@ -1,25 +1,8 @@
-
 import { toast } from "sonner";
-
-export interface PodPort {
-  number: number;
-  service: string;
-}
-
-export interface Pod {
-  id: string;
-  name: string;
-  status: "running" | "stopped";
-  uptime: string;
-  cpu: number;
-  memory: string;
-  gpu: number;
-  ports: PodPort[];
-  user?: string;
-}
+import { LegacyPod, PodPort } from "@/types/pod";
 
 // Lista de pods iniciales para cliente
-export const initialClientPods: Pod[] = [
+export const initialClientPods: LegacyPod[] = [
   {
     id: "pod-1",
     name: "ComfyUI-1",
@@ -29,7 +12,7 @@ export const initialClientPods: Pod[] = [
     memory: "4.2GB / 8GB",
     gpu: 65,
     ports: [
-      { number: 8888, service: "Jupyter Notebook" },
+      { number: 8888, service: "Jupyter Lab" },
       { number: 7860, service: "ComfyUI" }
     ],
   },
@@ -42,14 +25,14 @@ export const initialClientPods: Pod[] = [
     memory: "0GB / 4GB",
     gpu: 0,
     ports: [
-      { number: 8888, service: "Jupyter Notebook" },
+      { number: 8888, service: "Jupyter Lab" },
       { number: 22, service: "SSH" }
     ],
   },
 ];
 
 // Lista de pods iniciales para admin
-export const initialAdminPods: Pod[] = [
+export const initialAdminPods: LegacyPod[] = [
   {
     id: "pod-1",
     name: "ComfyUI-1",
@@ -59,7 +42,7 @@ export const initialAdminPods: Pod[] = [
     memory: "4.2GB / 8GB",
     gpu: 65,
     ports: [
-      { number: 8888, service: "Jupyter Notebook" },
+      { number: 8888, service: "Jupyter Lab" },
       { number: 7860, service: "ComfyUI" }
     ],
     user: "admin@example.com",
@@ -73,7 +56,7 @@ export const initialAdminPods: Pod[] = [
     memory: "0GB / 4GB",
     gpu: 0,
     ports: [
-      { number: 8888, service: "Jupyter Notebook" },
+      { number: 8888, service: "Jupyter Lab" },
       { number: 22, service: "SSH" }
     ],
     user: "admin@example.com",
@@ -87,7 +70,7 @@ export const initialAdminPods: Pod[] = [
     memory: "12GB / 16GB",
     gpu: 78,
     ports: [
-      { number: 8888, service: "Jupyter Notebook" },
+      { number: 8888, service: "Jupyter Lab" },
       { number: 6006, service: "TensorBoard" }
     ],
     user: "usuario1@example.com",
@@ -116,7 +99,7 @@ export const createNewPod = (
   selectedGpu: any,
   ports: string,
   user?: string
-): Pod => {
+): LegacyPod => {
   const portsList = ports.split(",").map(port => port.trim()).filter(port => port !== "");
   const portsArray: PodPort[] = [];
   
@@ -128,7 +111,7 @@ export const createNewPod = (
       // Asignar nombres de servicio basados en puertos conocidos
       switch (portNum) {
         case 8888:
-          service = "Jupyter Notebook";
+          service = "Jupyter Lab";
           break;
         case 7860:
           service = "ComfyUI";
@@ -166,7 +149,7 @@ export const createNewPod = (
 };
 
 // Función para cambiar el estado de un pod
-export const togglePodStatus = (pod: Pod): Pod => {
+export const togglePodStatus = (pod: LegacyPod): LegacyPod => {
   if (pod.status === "running") {
     // Apagar pod
     toast.success(`Pod ${pod.name} detenido correctamente`);
@@ -193,7 +176,10 @@ export const togglePodStatus = (pod: Pod): Pod => {
 };
 
 // Función para eliminar un pod
-export const deletePod = (podId: string, pods: Pod[]): Pod[] => {
+export const deletePod = (podId: string, pods: LegacyPod[]): LegacyPod[] => {
   return pods.filter(pod => pod.id !== podId);
 };
 
+// Exportar tipos para compatibilidad hacia atrás
+export type Pod = LegacyPod;
+export type { PodPort };

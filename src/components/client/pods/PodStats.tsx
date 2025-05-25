@@ -1,15 +1,25 @@
-
 import React from "react";
 import { Progress } from "@/components/ui/progress";
-import { Pod } from "@/utils/podUtils";
+import { LegacyPod } from "@/types/pod";
 
 interface PodStatsProps {
-  pod: Pod;
+  pod: LegacyPod;
 }
 
 export const PodStats: React.FC<PodStatsProps> = ({ pod }) => {
+  const getMemoryProgress = () => {
+    if (pod.status !== "running" || !pod.memory) return 0;
+    
+    try {
+      const [used, total] = pod.memory.split(' / ').map(m => parseFloat(m.replace('GB', '')));
+      return (used / total) * 100;
+    } catch {
+      return 0;
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <>
       <div>
         <div className="flex justify-between text-sm mb-1">
           <span>Tiempo Activo</span>
@@ -31,7 +41,7 @@ export const PodStats: React.FC<PodStatsProps> = ({ pod }) => {
           <span>{pod.status === "running" ? pod.memory : "No disponible"}</span>
         </div>
         {pod.status === "running" && (
-          <Progress value={parseInt(pod.memory.split('/')[0].replace('GB', '')) / parseInt(pod.memory.split('/')[1].replace('GB', '')) * 100} className="h-2" />
+          <Progress value={getMemoryProgress()} className="h-2" />
         )}
       </div>
       <div>
@@ -43,6 +53,6 @@ export const PodStats: React.FC<PodStatsProps> = ({ pod }) => {
           <Progress value={pod.gpu} className="h-2" />
         )}
       </div>
-    </div>
+    </>
   );
 };

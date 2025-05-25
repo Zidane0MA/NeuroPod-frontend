@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -20,7 +19,7 @@ export const ClientPodsHeader: React.FC<ClientPodsHeaderProps> = ({ user }) => {
       <div className="flex items-center gap-4">
         <div className="text-sm text-right">
           <div className="text-muted-foreground">Saldo</div>
-          <div className="font-semibold">{user?.balance?.toFixed(2) || 0} €</div>
+          <div className="font-semibold">€{user?.balance?.toFixed(2) || '0.00'}</div>
         </div>
         
         <Link to="/client/pods/deploy">

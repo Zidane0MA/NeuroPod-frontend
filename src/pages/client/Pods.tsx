@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Pod } from "@/utils/podUtils";
+import { LegacyPod } from "@/types/pod";
 import { ClientPodsHeader } from "@/components/client/pods/ClientPodsHeader";
 import { PodsContainer } from "@/components/client/pods/PodsContainer";
 import { podService } from "@/services/pod.service";
@@ -10,7 +10,7 @@ import { podService } from "@/services/pod.service";
 const ClientPods = () => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<string>("");
-  const [pods, setPods] = useState<Pod[]>([]);
+  const [pods, setPods] = useState<LegacyPod[]>([]);
   
   // Estado para manejar carga y errores
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,7 +57,7 @@ const ClientPods = () => {
       // Actualizar la UI inmediatamente para feedback
       setPods(prevPods => 
         prevPods.map(p => 
-          p.id === podId ? { ...p, status: p.status === 'running' ? 'stopped' : 'running' } : p
+          p.id === podId ? { ...p, status: p.status === 'running' ? 'stopped' : (p.status === 'stopped' ? 'creating' : p.status) } : p
         )
       );
 
@@ -68,20 +68,20 @@ const ClientPods = () => {
           prevPods.map(p => p.id === podId ? stoppedPod : p)
         );
         toast.success(`Pod ${pod.name} detenido correctamente`);
-      } else {
+      } else if (pod.status === 'stopped') {
         // Iniciar el pod
         const startedPod = await podService.startPod(podId);
         setPods(prevPods => 
           prevPods.map(p => p.id === podId ? startedPod : p)
         );
-        toast.success(`Pod ${pod.name} iniciado correctamente`);
+        toast.success(`Pod ${pod.name} iniciando...`);
       }
     } catch (err) {
       console.error('Error al cambiar estado del pod:', err);
       // Revertir el cambio en la UI si hay error
       setPods(prevPods => 
         prevPods.map(p => 
-          p.id === podId ? { ...p, status: p.status === 'running' ? 'stopped' : 'running' } : p
+          p.id === podId ? { ...p, status: p.status === 'creating' ? 'stopped' : (p.status === 'stopped' ? 'running' : p.status) } : p
         )
       );
       toast.error('Error al cambiar el estado del pod');

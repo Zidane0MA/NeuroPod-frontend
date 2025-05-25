@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 5173,
+    origin: "http://app.neuropod.online:5173", // agrega esta línea
   },
   plugins: [
     react(),

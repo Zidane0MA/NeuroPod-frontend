@@ -1,35 +1,25 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Terminal, RefreshCw } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { LegacyPod } from "@/types/pod";
 
 interface PodLogsDialogProps {
-  podName: string;
-  logs: string;
+  pod: LegacyPod;
   viewLogs: (podId: string) => void;
+  logs: string;
 }
 
-export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({ 
-  podName, 
-  logs, 
-  viewLogs 
-}) => {
+export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({ pod, viewLogs, logs }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleOpenLogs = () => {
-    viewLogs(podName);
+    viewLogs(pod.id);
     setIsOpen(true);
   };
 
   const handleRefreshLogs = () => {
-    viewLogs(podName);
+    viewLogs(pod.id);
   };
 
   return (
@@ -48,7 +38,7 @@ export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({
         <DialogHeader>
           <div className="flex justify-between items-center">
             <div>
-              <DialogTitle>Logs de {podName}</DialogTitle>
+              <DialogTitle>Logs de {pod.name}</DialogTitle>
               <DialogDescription>
                 Registro de actividad del pod
               </DialogDescription>

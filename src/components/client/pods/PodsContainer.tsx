@@ -1,10 +1,10 @@
 import React from "react";
-import { Pod } from "@/utils/podUtils";
+import { LegacyPod } from "@/types/pod";
 import { PodCard } from "./PodCard";
 import { EmptyPodsList } from "./EmptyPodsList";
 
 interface PodsContainerProps {
-  pods: Pod[] | null | undefined;
+  pods: LegacyPod[] | null | undefined;
   logs: string;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;

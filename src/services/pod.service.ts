@@ -1,27 +1,11 @@
 import api from './api';
-import { Pod, PodPort } from '@/utils/podUtils';
-
-export interface PodCreateParams {
-  name: string;
-  deploymentType: string;  // 'template' o 'docker'
-  template?: string;       // 'ubuntu' o 'comfyui' si deploymentType es 'template'
-  dockerImage?: string;    // Si deploymentType es 'docker'
-  gpu: string;
-  containerDiskSize: number;
-  volumeDiskSize: number;
-  ports: string;
-  enableJupyter: boolean;
-  assignToUser?: string;   // Solo para administradores
-}
-
-export interface PodCreateResponse {
-  pod: Pod;
-  url: string;
-}
+import { Pod, PodCreateParams, PodCreateResponse, PodConnectionsResponse, LegacyPod, convertToLegacyPod } from '@/types/pod';
 
 export interface PodLogsResponse {
-  logs: string;
-  data: string;
+  success: boolean;
+  data: {
+    logs: string;
+  };
 }
 
 export interface PodDetailsResponse {
@@ -38,11 +22,13 @@ export interface PodDetailsResponse {
 
 export const podService = {
   // Obtener todos los pods del usuario actual
-  getPods: async (): Promise<Pod[]> => {
+  getPods: async (): Promise<LegacyPod[]> => {
     try {
-      // Intentar obtener los pods desde el backend
       const response = await api.get<{ data: Pod[], success: boolean }>('/api/pods');
-      return response.data.data || [];
+      const pods = response.data.data || [];
+      
+      // Convertir a formato legacy para compatibilidad
+      return pods.map(convertToLegacyPod);
     } catch (error: any) {
       console.error('Error al obtener pods:', error);
       
@@ -56,7 +42,7 @@ export const podService = {
         const isAdmin = user.role === 'admin';
         
         // Retornar datos simulados según el rol
-        const simulatedPods: Pod[] = [];
+        const simulatedPods: LegacyPod[] = [];
         
         if (isAdmin) {
           // Para administradores: pods propios y de usuarios
@@ -70,7 +56,7 @@ export const podService = {
               memory: "4.2GB / 8GB",
               gpu: 65,
               ports: [
-                { number: 8888, service: "Jupyter Notebook" },
+                { number: 8888, service: "Jupyter Lab" },
                 { number: 7860, service: "ComfyUI" }
               ],
               user: user.email
@@ -84,24 +70,10 @@ export const podService = {
               memory: "0GB / 4GB",
               gpu: 0,
               ports: [
-                { number: 8888, service: "Jupyter Notebook" },
+                { number: 8888, service: "Jupyter Lab" },
                 { number: 22, service: "SSH" }
               ],
               user: user.email
-            },
-            {
-              id: "pod-3",
-              name: "DataScience-1",
-              status: "running",
-              uptime: "5h 43m",
-              cpu: 45,
-              memory: "12GB / 16GB",
-              gpu: 78,
-              ports: [
-                { number: 8888, service: "Jupyter Notebook" },
-                { number: 6006, service: "TensorBoard" }
-              ],
-              user: "usuario1@example.com"
             }
           );
         } else {
@@ -116,7 +88,7 @@ export const podService = {
               memory: "4.2GB / 8GB",
               gpu: 65,
               ports: [
-                { number: 8888, service: "Jupyter Notebook" },
+                { number: 8888, service: "Jupyter Lab" },
                 { number: 7860, service: "ComfyUI" }
               ]
             },
@@ -129,7 +101,7 @@ export const podService = {
               memory: "0GB / 4GB",
               gpu: 0,
               ports: [
-                { number: 8888, service: "Jupyter Notebook" },
+                { number: 8888, service: "Jupyter Lab" },
                 { number: 22, service: "SSH" }
               ]
             }
@@ -139,12 +111,101 @@ export const podService = {
         return simulatedPods;
       }
       
-      // Si no es un error de conexión o no estamos en desarrollo, propagar el error
+      throw error;
+    }
+  },
+
+  // Obtener pods de un usuario específico (solo para admin)
+  getPodsByUser: async (userEmail: string): Promise<LegacyPod[]> => {
+    try {
+      const response = await api.get<{ data: Pod[], success: boolean }>(`/api/pods?userEmail=${userEmail}`);
+      const pods = response.data.data || [];
+      
+      // Convertir a formato legacy y añadir el email del usuario
+      return pods.map(pod => ({
+        ...convertToLegacyPod(pod),
+        user: userEmail
+      }));
+    } catch (error: any) {
+      console.error('Error al obtener pods por usuario:', error);
+      
+      // Simulación en desarrollo
+      if (import.meta.env.DEV && 
+         (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
+        console.warn('Simulando pods de usuario específico');
+        
+        return [
+          {
+            id: "pod-user-1",
+            name: "ComfyUI-Usuario",
+            status: "running",
+            uptime: "1h 30m",
+            cpu: 35,
+            memory: "3.5GB / 8GB",
+            gpu: 45,
+            ports: [
+              { number: 8888, service: "Jupyter Lab" },
+              { number: 7860, service: "ComfyUI" }
+            ],
+            user: userEmail
+          }
+        ];
+      }
+      
       throw error;
     }
   },
   
-  // Obtener detalles de un pod específico
+  // Obtener información de conexiones de un pod
+  getPodConnections: async (podId: string): Promise<PodConnectionsResponse> => {
+    try {
+      const response = await api.get<{ data: PodConnectionsResponse, success: boolean }>(`/api/pods/${podId}/connections`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error al obtener conexiones del pod:', error);
+      
+      // Simulación en desarrollo
+      if (import.meta.env.DEV && 
+         (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
+        console.warn('Simulando conexiones de pod');
+        
+        return {
+          podId: podId,
+          podName: "Pod-Simulado",
+          status: "running",
+          httpServices: [
+            {
+              port: 8888,
+              serviceName: "Jupyter Lab",
+              url: `https://pod-${podId}-8888.neuropod.online`,
+              isCustom: false,
+              status: "ready"
+            },
+            {
+              port: 7860,
+              serviceName: "ComfyUI",
+              url: `https://pod-${podId}-7860.neuropod.online`,
+              isCustom: false,
+              status: "ready"
+            }
+          ],
+          tcpServices: [
+            {
+              port: 22,
+              serviceName: "SSH",
+              url: `tcp://pod-${podId}-22.neuropod.online:22`,
+              isCustom: false,
+              status: "disable"
+            }
+          ]
+        };
+      }
+      
+      throw error;
+    }
+  },
+  
+  // Obtener detalles de un pod específico (mantener para compatibilidad)
   getPodDetails: async (podId: string): Promise<PodDetailsResponse> => {
     try {
       const response = await api.get<{ pod: Pod, details: any, success: boolean }>(`/api/pods/${podId}`);
@@ -160,20 +221,48 @@ export const podService = {
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Usando datos simulados de detalles de pod');
         
-        return {
-          pod: {
-            id: podId,
-            name: "Pod-Simulado",
-            status: "running",
-            uptime: "3h 45m",
-            cpu: 30,
-            memory: "2.5GB / 8GB",
-            gpu: 50,
-            ports: [
-              { number: 8888, service: "Jupyter Notebook" },
-              { number: 7860, service: "ComfyUI" }
-            ]
+        // Crear un pod simulado para compatibilidad
+        const simulatedPod: Pod = {
+          podId: podId,
+          podName: "Pod-Simulado",
+          userId: "user-123",
+          userHash: "hash-123",
+          createdBy: "user-123",
+          deploymentType: "template",
+          templateId: "template-1",
+          gpu: "rtx-4050",
+          containerDiskSize: 8,
+          volumeDiskSize: 20,
+          enableJupyter: true,
+          status: "running",
+          httpServices: [
+            {
+              port: 8888,
+              serviceName: "Jupyter Lab",
+              url: `https://pod-${podId}-8888.neuropod.online`,
+              isCustom: false,
+              status: "ready"
+            }
+          ],
+          tcpServices: [],
+          createdAt: new Date(),
+          lastActive: new Date(),
+          kubernetesResources: {
+            podName: `pod-${podId}`,
+            pvcName: `pvc-${podId}`,
+            namespace: "default"
           },
+          stats: {
+            cpuUsage: 30,
+            memoryUsage: 50,
+            gpuUsage: 40,
+            uptime: 13500,
+            lastUpdated: new Date()
+          }
+        };
+        
+        return {
+          pod: simulatedPod,
           details: {
             url: `https://pod-${podId}.neuropod.online`,
             subdomain: `pod-${podId}.neuropod.online`,
@@ -192,30 +281,13 @@ export const podService = {
   // Crear un nuevo pod
   createPod: async (params: PodCreateParams): Promise<PodCreateResponse> => {
     try {
-      // Formatear la solicitud según lo que espera el backend
-      const requestData = {
-        name: params.name,
-        deploymentType: params.deploymentType,
-        template: params.template,
-        dockerImage: params.dockerImage,
-        gpu: params.gpu,
-        containerDiskSize: params.containerDiskSize,
-        volumeDiskSize: params.volumeDiskSize,
-        ports: params.ports,
-        enableJupyter: params.enableJupyter,
-        assignToUser: params.assignToUser
-      };
+      console.log('Enviando solicitud de creación de pod:', params);
       
-      console.log('Enviando solicitud de creación de pod:', requestData);
-      
-      const response = await api.post<{ success: boolean, pod: Pod, url: string }>('/api/pods', requestData);
+      const response = await api.post<PodCreateResponse>('/api/pods', params);
       
       console.log('Respuesta de creación de pod:', response.data);
       
-      return {
-        pod: response.data.pod,
-        url: response.data.url
-      };
+      return response.data;
     } catch (error: any) {
       console.error('Error al crear pod:', error);
       
@@ -224,67 +296,14 @@ export const podService = {
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Simulando creación de pod');
         
-        // Convertir los puertos de string a PodPort[]
-        const portsList = params.ports.split(",").map(port => port.trim()).filter(port => port !== "");
-        const portsArray: PodPort[] = [];
-        
-        portsList.forEach(portStr => {
-          const portNum = parseInt(portStr);
-          if (!isNaN(portNum)) {
-            let service = "Servicio";
-            
-            // Asignar nombres según puertos conocidos
-            switch (portNum) {
-              case 8888:
-                service = "Jupyter Notebook";
-                break;
-              case 7860:
-                service = "ComfyUI";
-                break;
-              case 6006:
-                service = "TensorBoard";
-                break;
-              case 22:
-                service = "SSH";
-                break;
-              default:
-                service = `Puerto ${portNum}`;
-            }
-            
-            // Si el template es específico, personalizar el servicio
-            if (params.template === "comfyui" && portNum === 7860) {
-              service = "ComfyUI";
-            }
-            
-            portsArray.push({ number: portNum, service });
-          }
-        });
-        
-        // Si se seleccionó la opción de Jupyter y no está ya en los puertos
-        if (params.enableJupyter && !portsArray.some(port => port.number === 8888)) {
-          portsArray.push({ number: 8888, service: "Jupyter Notebook" });
-        }
-        
-        // Generar un ID único para el pod simulado
-        const podId = `pod-${Date.now()}`;
-        
-        // Determinar el nombre para el subdominio
-        const templatePrefix = params.deploymentType === 'docker' ? 'docker' : params.template;
-        
-        // Simular la respuesta de creación exitosa
         return {
-          pod: {
-            id: podId,
-            name: params.name,
-            status: "running",
-            uptime: "0h 1m",
-            cpu: Math.floor(Math.random() * 30) + 10,
-            gpu: Math.floor(Math.random() * 50) + 30,
-            memory: `${(params.containerDiskSize * 0.3).toFixed(1)}GB / ${params.containerDiskSize}GB`,
-            ports: portsArray,
-            ...(params.assignToUser ? { user: params.assignToUser } : {})
-          },
-          url: `https://${templatePrefix}-${podId.substring(4, 10)}.neuropod.online`
+          success: true,
+          data: {
+            podId: `pod-${Date.now()}`,
+            podName: params.name,
+            status: 'creating',
+            message: 'Pod creándose. Por favor espere unos minutos.'
+          }
         };
       }
       
@@ -293,10 +312,19 @@ export const podService = {
   },
   
   // Iniciar un pod
-  startPod: async (podId: string): Promise<Pod> => {
+  startPod: async (podId: string): Promise<LegacyPod> => {
     try {
-      const response = await api.post<{ success: boolean, pod: Pod }>(`/api/pods/${podId}/start`);
-      return response.data.pod;
+      const response = await api.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/start`);
+      
+      // Obtener el pod actualizado
+      const pods = await podService.getPods();
+      const updatedPod = pods.find(p => p.id === podId);
+      
+      if (updatedPod) {
+        return { ...updatedPod, status: 'creating' };
+      }
+      
+      throw new Error('Pod no encontrado después de iniciar');
     } catch (error: any) {
       console.error('Error al iniciar pod:', error);
       
@@ -305,18 +333,16 @@ export const podService = {
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Simulando inicio de pod');
         
-        // Para simular, necesitaríamos el estado actual del pod
-        // Asumimos un pod genérico iniciado
         return {
           id: podId,
           name: "Pod-Simulado",
-          status: "running",
+          status: "creating",
           uptime: "0h 1m",
           cpu: Math.floor(Math.random() * 30) + 10,
           gpu: Math.floor(Math.random() * 50) + 30,
           memory: "2.5GB / 8GB",
           ports: [
-            { number: 8888, service: "Jupyter Notebook" }
+            { number: 8888, service: "Jupyter Lab" }
           ]
         };
       }
@@ -326,10 +352,19 @@ export const podService = {
   },
   
   // Detener un pod
-  stopPod: async (podId: string): Promise<Pod> => {
+  stopPod: async (podId: string): Promise<LegacyPod> => {
     try {
-      const response = await api.post<{ success: boolean, pod: Pod }>(`/api/pods/${podId}/stop`);
-      return response.data.pod;
+      const response = await api.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/stop`);
+      
+      // Obtener el pod actualizado
+      const pods = await podService.getPods();
+      const updatedPod = pods.find(p => p.id === podId);
+      
+      if (updatedPod) {
+        return { ...updatedPod, status: 'stopped' };
+      }
+      
+      throw new Error('Pod no encontrado después de detener');
     } catch (error: any) {
       console.error('Error al detener pod:', error);
       
@@ -338,7 +373,6 @@ export const podService = {
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Simulando detención de pod');
         
-        // Para simulación, asumimos un pod genérico detenido
         return {
           id: podId,
           name: "Pod-Simulado",
@@ -348,7 +382,7 @@ export const podService = {
           gpu: 0,
           memory: "0GB / 8GB",
           ports: [
-            { number: 8888, service: "Jupyter Notebook" }
+            { number: 8888, service: "Jupyter Lab" }
           ]
         };
       }
@@ -368,7 +402,6 @@ export const podService = {
       if (import.meta.env.DEV && 
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Simulando eliminación de pod');
-        // No necesitamos retornar datos para una eliminación
         return;
       }
       
@@ -379,8 +412,8 @@ export const podService = {
   // Obtener logs de un pod
   getPodLogs: async (podId: string): Promise<string> => {
     try {
-      const response = await api.get<{ success: boolean, data: string }>(`/api/pods/${podId}/logs`);
-      return response.data.data;
+      const response = await api.get<PodLogsResponse>(`/api/pods/${podId}/logs`);
+      return response.data.data.logs;
     } catch (error: any) {
       console.error('Error al obtener logs del pod:', error);
       
@@ -389,7 +422,6 @@ export const podService = {
          (error.isConnectionError || !error.response || error.code === 'ECONNABORTED')) {
         console.warn('Simulando logs de pod');
         
-        // Generar logs simulados según la hora actual
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
         
